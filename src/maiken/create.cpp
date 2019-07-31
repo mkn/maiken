@@ -242,7 +242,7 @@ std::vector<maiken::Application *> maiken::Application::CREATE(const kul::cli::A
       splitArgs(
           args.get(STR_ENV), "environment",
           std::bind(
-              (void (AppVars::*)(const std::string &, const std::string &)) & AppVars::envVars,
+              (void (AppVars::*)(const std::string &, const std::string &)) & AppVars::envVar,
               std::ref(AppVars::INSTANCE()), std::placeholders::_1, std::placeholders::_2));
   }
 
@@ -354,15 +354,14 @@ std::vector<maiken::Application *> maiken::Application::CREATE(const kul::cli::A
     KEXIT(0, "");
   }
   if (args.has(STR_SRC)) {
-    for (auto a : apps) {
+    auto print_srcs = [](const auto * a){
       for (const auto &p1 : a->sourceMap())
         for (const auto &p2 : p1.second)
-          for (const auto &p3 : p2.second) KOUT(NON) << kul::File(p3).full();
-      for (auto app = a->deps.rbegin(); app != a->deps.rend(); ++app)
-        for (const auto &p1 : (*app)->sourceMap())
-          if (!(*app)->ig)
-            for (const auto &p2 : p1.second)
-              for (const auto &p3 : p2.second) KOUT(NON) << kul::File(p3).full();
+          for (const auto &p3 : p2.second) KOUT(NON) << kul::File(p3.in()).full();
+    };
+    for (auto a : apps) {
+      print_srcs(a);
+      for (auto app = a->deps.rbegin(); app != a->deps.rend(); ++app) print_srcs((*app));
     }
     KEXIT(0, "");
   }
@@ -372,9 +371,12 @@ std::vector<maiken::Application *> maiken::Application::CREATE(const kul::cli::A
   }
 
   if (apps.size() == 1) {
-    if (args.has(STR_ADD))
+    if (args.has(STR_ADD)){
+      for (const auto &s : kul::String::ESC_SPLIT(args.get(STR_ADD), ','))
+        KLOG(INF) << s;
       for (const auto &s : kul::String::ESC_SPLIT(args.get(STR_ADD), ','))
         apps[0]->addSourceLine(s);
+    }
     if (args.has(STR_MAIN)) apps[0]->main = args.get(STR_MAIN);
     if (args.has(STR_OUT)) apps[0]->out = args.get(STR_OUT);
   }

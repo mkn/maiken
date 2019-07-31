@@ -31,9 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "maiken.hpp"
 
 maiken::CompilationUnit maiken::ThreadingCompiler::compilationUnit(
-    const std::pair<std::string, std::string> &p) const KTHROW(kul::Exception) {
-  const std::string src(p.first);
-  const std::string obj(p.second);
+    const std::pair<maiken::Source, std::string> &p) const KTHROW(kul::Exception) {
+  const std::string src(p.first.in()), obj(p.second);
   const std::string &fileType = src.substr(src.rfind(".") + 1);
   if (!(app.files().count(fileType))) KEXCEPTION("NOOOOOOO ") << fileType;
   const std::string &compiler = (*(*app.files().find(fileType)).second.find(STR_COMPILER)).second;
@@ -49,13 +48,14 @@ maiken::CompilationUnit maiken::ThreadingCompiler::compilationUnit(
   if (AppVars::INSTANCE().jargs().count(fileType) > 0)
     cmd += " " + (*AppVars::INSTANCE().jargs().find(fileType)).second;
   // WE CHECK BEFORE USING THIS THAT A COMPILER EXISTS FOR EVERY FILE
-  auto compilerFlags = [&args](const std::string &&as) {
+  auto compilerFlags = [&args](const std::string &as) {
     for (const auto &s : kul::cli::asArgs(as)) args.push_back(s);
   };
   auto comp = Compilers::INSTANCE().get(compiler);
   compilerFlags(comp->compilerDebug(AppVars::INSTANCE().debug()));
   compilerFlags(comp->compilerOptimization(AppVars::INSTANCE().optimise()));
   compilerFlags(comp->compilerWarning(AppVars::INSTANCE().warn()));
+  compilerFlags(p.first.args());
   return CompilationUnit(app, comp, cmd, args, incs, src, obj, app.m, AppVars::INSTANCE().dryRun());
 }
 
